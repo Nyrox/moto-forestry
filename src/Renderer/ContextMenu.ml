@@ -27,9 +27,9 @@ let viewMenuPopup menu =
         ] @@
         List.map viewMenuItem menu
 
-let contextMenuContainer createMsg node props children: ('a Vdom.t) =
-    let eventHandler = onCB "contextmenu" "" (fun event ->
-        let mapper = Decoder.map2 (fun x y -> 
+let contextMenuContainer createMsg ?key:((key: string)="") node props children: ('a Vdom.t) =
+    let eventHandler = onCB "contextmenu" key (fun event ->
+        let mapper = Decoder.map2 (fun x y ->
             globalMenuState.offsets <- (x, y);
         ) (Decoder.field "clientX" Decoder.int) (Decoder.field "clientY" Decoder.int) in
         let error = Decoder.decodeEvent mapper event

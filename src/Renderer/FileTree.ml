@@ -2,7 +2,7 @@
 
 module Path = struct
     type t = {repr: string}
-    
+
     let absolute path =
         {repr=path}
 
@@ -11,7 +11,7 @@ module Path = struct
 
     let basename file =
         Node.Path.basename file.repr
-    
+
     let dirname file =
         Node.Path.dirname file.repr
 
@@ -67,7 +67,7 @@ let getDirtype path =
         else DirType.Other
     )
 
-let mapFileToStats f = 
+let mapFileToStats f =
     getDirtype @@ f
     |> Js.Promise.then_ (fun stats -> Js.Promise.resolve stats);;
 
@@ -78,7 +78,7 @@ let (<<) f g = (fun a -> f (g a))
 let choose (l: 'a option list) =
     List.concat @@ List.map (function | None -> [] | Some x -> [x]) l
 
-module Async = struct 
+module Async = struct
     include Js.Promise
     let let_ a b = Js.Promise.then_ b a
 end
@@ -88,17 +88,17 @@ open Js.Promise
 
 let rec buildTree (path: Path.t) =
     let%Async f = readdir @@ Path.asString path in
-    let%Async fileStats = Js.Promise.all @@ Array.map (fun file -> 
+    let%Async fileStats = Js.Promise.all @@ Array.map (fun file ->
             let path = Path.extend path file in
             let%Async stat = mapFileToStats @@ Path.asString path in
             resolve (path, stat)
         ) f
     in
     let%Async childNodes=
-        let%Async nodes = fileStats |> Array.map (fun (path, stat) -> 
+        let%Async nodes = fileStats |> Array.map (fun (path, stat) ->
             match stat with
             | DirType.File -> resolve  (Some (File path))
-            | DirType.Directory -> 
+            | DirType.Directory ->
                 let%Async tree = buildTree path in
                 resolve @@ Some tree
             | DirType.Other -> resolve @@ None
@@ -138,9 +138,10 @@ let init path =
         | Error s -> Js.log s; Directory (path, [], false)
     )))
 
+let treeIteration = ref 0;;
 
 let rec update model msg =
-    Js.log model;
+	treeIteration := !treeIteration + 1;
     match msg with
     | RebuiltTree node -> { model with tree=node }, Tea.Cmd.none, DoNothing
     | CreateContextMenu m -> Js.log m; { model with contextMenu=Some m }, Tea.Cmd.none, DoNothing
@@ -158,7 +159,7 @@ let dirEntry replace (name, files, hidden): msg Vdom.t =
     ] in
     let srcString = Utils.getStaticAssetPath @@ if hidden then "icons/directory_open.svg" else "icons/directory.svg" in
     let icon = img [src srcString] [] in
-    ContextMenu.contextMenuContainer (CreateContextMenu contextMenu) li [
+    ContextMenu.contextMenuContainer ~key:(string_of_int !treeIteration) (CreateContextMenu contextMenu) li [
         onClick @@ RebuiltTree (replace (Directory (name, files, not hidden)));
         class' (if hidden then "directory hidden" else "directory");
         ] [icon; text @@ Path.basename name]
@@ -166,7 +167,7 @@ let dirEntry replace (name, files, hidden): msg Vdom.t =
 let rec treeNode replace node = match node with
     | File name -> [ li [onDoubleClick @@ DoubleClickFile name] [ text @@ Path.basename name ] ]
     | Directory (name, files, hidden) ->
-        let childNodes = List.mapi (fun i outerNode -> 
+        let childNodes = List.mapi (fun i outerNode ->
             treeNode (fun replaceWith ->
                 replace @@ Directory (name, List.mapi (fun j node -> if i == j then replaceWith else node) files, hidden)
             ) outerNode
