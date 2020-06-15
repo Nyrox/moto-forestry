@@ -1,0 +1,152 @@
+@import "../../../node_modules/typeface-roboto/index.css";
+@import "./reset";
+
+$backgroundMain: #121212;
+$backgroundLight: #363636;
+$fontColor: #E5E5E5;
+$fontColorDim: #A5A5A5;
+$fontColorDimHard: #888888;
+
+$singlePad: 8px;
+$doublePad: $singlePad * 2;
+$quadPad: $doublePad * 2;
+
+$halfPad: $singlePad / 2;
+
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html, body, #app {
+    height: 100%;
+    background: $backgroundMain;
+    color: $fontColor;
+    font-family: "Roboto";
+    font-size: 14px;
+}
+
+button {
+    background: none;
+    color: inherit;
+    border: none;
+}
+
+@mixin simpleBox() {
+    padding: $singlePad $doublePad;
+}
+
+
+
+.context-menu-popup {
+    padding: $singlePad 0;
+
+    background: $backgroundLight;
+    position: absolute;
+
+    button {
+        display: block;
+        width: 100%;
+        text-align: left;
+
+        padding: $halfPad $doublePad;
+        padding-right: $quadPad * 2;
+        margin: $halfPad 0;
+        &:hover {
+            background: $backgroundMain;
+            color: $fontColorDim;
+        }
+    }
+}
+
+
+.file-tree {
+    @include simpleBox;
+    color: $fontColorDim;
+    height: 50%;
+
+    user-select: none;
+
+    li {
+        margin: $singlePad 0;
+        cursor: pointer;
+
+        &:hover {
+            color: $fontColor;
+        }
+    }
+    
+    .file-list {
+        padding-left: $doublePad;
+        border-left: 1px solid $fontColorDim;
+    }
+    
+    .directory {
+        position: relative;
+        padding-left: calc(#{$singlePad} + 1em);
+        img {
+            width: 1em;
+            position: absolute;
+            left: 0;
+        }
+        &.hidden img { width: 1em; }
+
+        &.hidden { color: $fontColorDimHard; }
+        &.hidden + .file-list { display: none; }
+    }
+}
+
+
+monaco-editor .breakpoint {
+    &::before {
+        height: 40%;
+        width: 40%;
+        background: red;
+        border-radius: 100%;
+        content: "";
+        display: block;
+        color: #e51400 !important;
+    }
+}
+
+#app {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: stretch;
+    flex-wrap: nowrap;
+}
+
+.sidebar {
+    width: 250px;
+    flex-grow: 0;
+    flex-shrink: 0;
+
+    > * + * {
+        border-top: 1px solid $fontColor;
+    }
+}
+
+.main-view {
+    min-width: 0;
+    flex-grow: 1;
+}
+
+monaco-editor {
+    display: block;
+    height: 100%;
+    width: 100%;
+}
+
+.pass-list {
+    padding: $doublePad;
+    color: $fontColor;
+    height: 50%;
+
+    h2 {
+        padding: $singlePad 0;
+        border-bottom: 1px solid $fontColorDim;
+    }
+}

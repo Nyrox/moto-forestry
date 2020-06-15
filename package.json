@@ -1,0 +1,40 @@
+{
+  "name": "bucklescript-electron",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "electron-webpack dev"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bs-let": "^0.1.16",
+    "bs-platform": "^7.3.2",
+    "bucklescript-tea": "^0.15.0",
+    "electron": "^9.0.2",
+    "electron-devtools-installer": "^3.0.0",
+    "electron-webpack": "^2.8.2",
+    "extra-watch-webpack-plugin": "^1.0.3",
+    "node-sass": "^4.14.1",
+    "sass-loader": "^8.0.2",
+    "webpack": "^4.43.0"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.20.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "reason-nodejs": "^13.0.0-beta.1",
+    "reason-react": "^0.8.0",
+    "source-map-support": "^0.5.19",
+    "typeface-roboto": "0.0.75"
+  },
+  "electronWebpack": {
+    "main": {
+      "sourceDirectory": "lib/js/src/Main"
+    },
+    "renderer": {
+      "sourceDirectory": "lib/js/src/Renderer",
+      "webpackConfig": "renderer.webpack.additions.js"
+    }
+  }
+}
