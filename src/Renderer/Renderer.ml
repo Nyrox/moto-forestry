@@ -78,12 +78,15 @@ let view (model: model)=
             globalItems;
         ]
 
+let subscriptions model =
+    Tea.Sub.map (fun m -> FileTreeMsg m) @@ FileTree.subscriptions model.fileTree
+
 let rendererEntry () =
     standardProgram {
         init=init;
         update;
         view;
-        subscriptions = (fun _ -> Sub.none);
+        subscriptions;
     } (Web_document.getElementById "app") ()
     
 

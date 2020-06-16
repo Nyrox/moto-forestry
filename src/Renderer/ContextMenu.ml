@@ -17,7 +17,7 @@ let globalMenuState = {offsets=(0, 0)}
 let viewMenuItem item =
     let label, cb = item in
     Js.log cb;
-    button [onCB "click" "" (fun _ -> Some cb)] [text label]
+    button [onClick cb] [text label]
 
 let viewMenuPopup menu =
     let x, y = globalMenuState.offsets in

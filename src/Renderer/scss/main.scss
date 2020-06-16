@@ -6,6 +6,7 @@ $backgroundLight: #363636;
 $fontColor: #E5E5E5;
 $fontColorDim: #A5A5A5;
 $fontColorDimHard: #888888;
+$fontColorBright: #FFF;
 
 $singlePad: 8px;
 $doublePad: $singlePad * 2;
@@ -26,6 +27,7 @@ html, body, #app {
     color: $fontColor;
     font-family: "Roboto";
     font-size: 14px;
+    overflow: hidden;
 }
 
 button {
@@ -67,6 +69,7 @@ button {
     color: $fontColorDim;
     height: 50%;
 
+    overflow-y: auto;
     user-select: none;
 
     li {
@@ -145,8 +148,39 @@ monaco-editor {
     color: $fontColor;
     height: 50%;
 
-    h2 {
+    .header {
+        display: flex;
+        flex-wrap: nowrap;
+
         padding: $singlePad 0;
         border-bottom: 1px solid $fontColorDim;
+        justify-content: flex-end;
+    
+        .button {
+            cursor: pointer;
+            &:hover { color: $fontColorBright; }
+        }
     }
+
+    h2 {
+        flex-grow: 1;
+    }
+}
+
+::-webkit-scrollbar-track
+{
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    border-radius: 10px;
+    background-color: $backgroundMain;
+}
+::-webkit-scrollbar
+{
+    width: 12px;
+    background-color: $backgroundMain;
+}
+::-webkit-scrollbar-thumb
+{
+    border-radius: 10px;
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+    background-color: $backgroundLight;
 }

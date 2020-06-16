@@ -138,6 +138,11 @@ let init path =
         | Error s -> Js.log s; Directory (path, [], false)
     )))
 
+let subscriptions model = 
+    match model.contextMenu with
+    | Some _ -> Tea.Sub.batch [Tea.Mouse.ups (fun _ -> DestroyContextMenu None)]
+    | None -> Tea.Sub.none
+
 let treeIteration = ref 0;;
 
 let rec update model msg =
