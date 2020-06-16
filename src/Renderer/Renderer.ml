@@ -79,7 +79,9 @@ let view (model: model)=
         ]
 
 let subscriptions model =
-    Tea.Sub.map (fun m -> FileTreeMsg m) @@ FileTree.subscriptions model.fileTree
+    Tea.Sub.batch
+    [ Tea.Sub.map (fun m -> FileTreeMsg m) @@ FileTree.subscriptions model.fileTree
+    ; ]
 
 let rendererEntry () =
     standardProgram {

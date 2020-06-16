@@ -21,6 +21,10 @@ $halfPad: $singlePad / 2;
     margin: 0;
 }
 
+li {
+    list-style: none;
+}
+
 html, body, #app {
     height: 100%;
     background: $backgroundMain;
@@ -145,15 +149,21 @@ monaco-editor {
 
 .pass-list {
     padding: $doublePad;
-    color: $fontColor;
+    color: $fontColorDim;
     height: 50%;
+
+    &.is-experiencing-input {
+        color: $fontColorDim;
+
+        input { color: $fontColorBright; }
+    }
 
     .header {
         display: flex;
         flex-wrap: nowrap;
 
         padding: $singlePad 0;
-        border-bottom: 1px solid $fontColorDim;
+        border-bottom: 1px solid currentColor;
         justify-content: flex-end;
     
         .button {
@@ -162,8 +172,31 @@ monaco-editor {
         }
     }
 
+    .pass-item {
+        margin: $singlePad 0;
+        padding: $halfPad;
+
+        cursor: pointer;
+
+        &:hover {
+            color: $fontColor;
+        }
+
+    }
+    
+    input.pass-item {
+        width: 100%;
+        background: $backgroundLight;
+        border: none;
+        margin: 0;
+        border-bottom: 1px solid currentColor;
+    }
+
+    form { display: contents; }
+
     h2 {
         flex-grow: 1;
+        color: $fontColor;
     }
 }
 

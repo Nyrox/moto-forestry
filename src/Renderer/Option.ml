@@ -12,3 +12,9 @@ let and_then fn v = match v with
 let orDefault def o = match o with
 | Some i -> i
 | None -> def
+
+let isSome o = match o with 
+| Some _ -> true
+| None -> false
+
+let isNone o = not @@ isSome o
