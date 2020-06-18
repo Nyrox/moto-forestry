@@ -1,8 +1,8 @@
 @import "../../../node_modules/typeface-roboto/index.css";
 @import "./reset";
 
-$backgroundMain: #121212;
-$backgroundLight: #363636;
+$backgroundMain: rgb(26, 26, 26);
+$backgroundLight: rgb(33, 33, 33);
 $fontColor: #E5E5E5;
 $fontColorDim: #A5A5A5;
 $fontColorDimHard: #888888;
@@ -131,15 +131,13 @@ monaco-editor .breakpoint {
     flex-grow: 0;
     flex-shrink: 0;
 
+    border-right: 1px solid black;
+
     > * + * {
-        border-top: 1px solid $fontColor;
+        border-top: 1px solid black;
     }
 }
 
-.main-view {
-    min-width: 0;
-    flex-grow: 1;
-}
 
 monaco-editor {
     display: block;
@@ -151,6 +149,10 @@ monaco-editor {
     padding: $doublePad;
     color: $fontColorDim;
     height: 50%;
+
+    overflow-y: auto;
+    user-select: none;
+
 
     &.is-experiencing-input {
         color: $fontColorDim;
@@ -178,7 +180,7 @@ monaco-editor {
 
         cursor: pointer;
 
-        &:hover {
+        &:hover, &.active {
             color: $fontColor;
         }
 
@@ -216,4 +218,52 @@ monaco-editor {
     border-radius: 10px;
     -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
     background-color: $backgroundLight;
+}
+
+.main-view {
+    background: $backgroundLight;
+    min-width: 0;
+    flex-grow: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    .block + * {
+        margin-top: $doublePad;
+    }
+
+
+    h2 {
+        font-size: 20px;
+        border-bottom: 1px solid currentColor;
+        padding: 8px 0;
+        display: inline-block;
+    }
+
+    .panel-navigation {
+        flex-grow: 0;
+    }
+
+    .panel {
+        flex-grow: 1;
+        padding: $doublePad $quadPad;
+    }
+}
+.panel-navigation {
+    
+    background: $backgroundMain;
+
+    > button {
+        padding: $singlePad $doublePad;
+        background: $backgroundLight;
+        border-bottom: 1px solid black;
+        border-right: 1px solid black;
+
+        color: $fontColorDim;
+
+        &.active {
+            color: $fontColor;
+            border-bottom: none;
+        }
+    }
 }
