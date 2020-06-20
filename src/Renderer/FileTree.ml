@@ -1,26 +1,6 @@
 
 
-module Path = struct
-    type t = {repr: string}
-
-    let absolute path =
-        {repr=path}
-
-    let resolve path =
-        absolute @@ Node.Path.resolve path "."
-
-    let basename file =
-        Node.Path.basename file.repr
-
-    let dirname file =
-        Node.Path.dirname file.repr
-
-    let asString file =
-        file.repr
-
-    let extend path segment =
-        absolute @@ Node.Path.resolve path.repr segment
-end
+open Utils
 
 type node =
     | File of Path.t
@@ -107,18 +87,14 @@ let rec buildTree (path: Path.t) =
     in
     resolve @@ Directory (path, childNodes, false)
 
-open Tea.Html
-
 
 
 type msg =
     | RebuiltTree of node
     | CreateContextMenu of msg ContextMenu.menu
     | DestroyContextMenu of msg option
-    | DoubleClickFile of Path.t
 
 type intent =
-    | OpenFile of Path.t
     | DoNothing
 
 type model =
@@ -148,15 +124,19 @@ let treeIteration = ref 0;;
 let rec update model msg =
 	treeIteration := !treeIteration + 1;
     match msg with
-    | RebuiltTree node -> { model with tree=node }, Tea.Cmd.none, DoNothing
-    | CreateContextMenu m -> Js.log m; { model with contextMenu=Some m }, Tea.Cmd.none, DoNothing
+    | RebuiltTree node -> { model with tree=node }
+    | CreateContextMenu m -> Js.log m; { model with contextMenu=Some m }
     | DestroyContextMenu msg ->
-        let _model, cmd, intent = match msg with
+        let _model = match msg with
         | Some msg -> update model msg
-        | None -> model, Tea.Cmd.none, DoNothing
+        | None -> model
         in
-        { _model with contextMenu=None }, cmd, intent
-    | DoubleClickFile file -> model, Tea.Cmd.none, OpenFile file
+        { _model with contextMenu=None }
+
+
+(* View *)
+
+open Tea.Html
 
 let dirEntry replace (name, files, hidden): msg Vdom.t =
     let contextMenu: msg ContextMenu.menuItem list = [
@@ -170,7 +150,15 @@ let dirEntry replace (name, files, hidden): msg Vdom.t =
         ] [icon; text @@ Path.basename name]
 
 let rec treeNode replace node = match node with
-    | File name -> [ li [onDoubleClick @@ DoubleClickFile name] [ text @@ Path.basename name ] ]
+    | File name -> 
+        [ li
+            [ Vdom.attribute "" "draggable" "true"
+            ; Vdom.onCB "dragstart" "" (fun e -> 
+                [%raw {| e.dataTransfer.setData("application/elem-type", "file") |}];
+                None)
+            ]
+            [ text @@ Path.basename name ]
+        ]
     | Directory (name, files, hidden) ->
         let childNodes = List.mapi (fun i outerNode ->
             treeNode (fun replaceWith ->

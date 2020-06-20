@@ -10,17 +10,16 @@
   },
   "suffix": ".bs.js",
   "bs-dependencies": [
-    "reason-react",
-    "bucklescript-tea"
+    "bucklescript-tea",
+    "@glennsl/bs-json"
   ],
   "warnings": {
     "error" : "+101",
-    "number": "-23"
+    "number": "-23-21"
   },
   "refmt": 3,
   "ppx-flags": [
     "bs-let/bs-let-win-x64.exe"
   ],
-  "bsc-flags": ["-bs-super-errors"],
-  "reason": { "react-jsx": 3 }
+  "bsc-flags": ["-bs-super-errors"]
 }
