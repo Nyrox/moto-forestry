@@ -247,6 +247,10 @@ monaco-editor {
     .panel {
         flex-grow: 1;
         padding: $doublePad $quadPad;
+
+        .block > * {
+            margin-top: $doublePad;    
+        }
     }
 }
 .panel-navigation {
@@ -266,4 +270,38 @@ monaco-editor {
             border-bottom: none;
         }
     }
+}
+
+.custom-select {
+    display: inline-block;
+    background: $backgroundMain;
+    color: $fontColor;
+
+    position: relative;
+}
+
+.custom-select, .custom-select li {
+    padding: $singlePad;
+    padding-right: $quadPad;
+    user-select: none;
+}
+
+.custom-select .options {
+    position: absolute;
+    left: 0;
+    top: 100%;
+
+    background: $backgroundMain;
+    border: 1px solid black;
+
+    display: none;
+}
+
+.custom-select.active .options {
+    display: block;
+}
+
+.custom-select li:hover {
+    background: $backgroundLight;
+    cursor: pointer;
 }

@@ -1,16 +1,12 @@
 
-open Tea.Html
-
-
-
 type model = ()
 type msg = ()
 
 
 let init (): model = ()
 
-let update model msg =
+let update model _ =
     model
 
-let view model = 
+let view _ = 
     []

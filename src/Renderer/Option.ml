@@ -18,3 +18,7 @@ let isSome o = match o with
 | None -> false
 
 let isNone o = not @@ isSome o
+
+let unwrap o = match o with
+| Some v -> v
+| None -> failwith "unwrap failed at None"

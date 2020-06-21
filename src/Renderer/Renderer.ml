@@ -7,12 +7,39 @@ open Tea.Html
 
 open Utils
 
+open AppDomain
+
 let jsonTest = 
     let _testProject = AppDomain.createProject () in
     AppDomain.Encode.project 
         {_testProject with passes=[{name="TestPass"; vertexInput=AppDomain.mesh @@ Path.resolve ("./teapot.obj")}]}
         |> Json.stringify
-        |> Node.Fs.writeFileAsUtf8Sync "rad.json";
+        |> Node.Fs.writeFileAsUtf8Sync "rad.json";;
+
+
+let customSelect (value: string) (options: (string * 'a) list): 'a Vdom.t =
+    let createOption (label, msg) =
+        let onClick e =
+            (* Yes. I know. *)
+            let removeActive = [%raw {|
+                (e) => e.target.parentElement.parentElement.classList.remove("active")
+            |}] in
+            removeActive e;
+            Some msg
+        in
+        li [onCB "click" "" onClick] [text label]
+    in
+    let setActive e =
+        let impl = [%raw {|
+            (e) => e.target.classList.add("active")
+        |}] in
+        impl e;
+        None
+    in
+        div [class' "custom-select"; onCB "click" "" setActive]
+            [ text value
+            ; ul [class' "options"] @@ List.map createOption options
+            ];
 
 
 module PassView = struct
@@ -32,27 +59,40 @@ module PassView = struct
     [@@bs.deriving accessors]
 
     type intent =
+    | UpdatePassData of AppDomain.pass
     | DoNothing
 
     let init () = 
         { tab=Input; editor=MonacoEditor.init "<loading...>" }
     
-    let update model msg =
+    let update model pass msg =
         match msg with
         | Tab t -> {model with tab=t}, DoNothing
+        | SetVertexInputData v ->
+            model, UpdatePassData {pass with vertexInput=v}
         | EditorMsg msg ->
             {model with editor=MonacoEditor.update model.editor msg}, DoNothing
         
-    let viewVertexDataBlock model pass =
+    let vertexInputBlock (pass: pass) =
+        let label: string = 
+            match pass.vertexInput with
+            | Mesh _ -> "Mesh"
+            | FullScreenPass -> "Fullscreen"
+            | _ -> ""
+        in
+        fieldset [] @@
+            [ customSelect label
+                [ "Mesh", setVertexInputData @@ AppDomain.mesh @@ Utils.Path.absolute ""
+                ; "Fullscreen", setVertexInputData AppDomain.FullScreenPass                        
+                ]
+            ]
+
+    let viewVertexDataBlock model (pass: pass) =
         div [class' "block"]
             [ h2 [] [text "Vertex Data"]
-            ; fieldset [] 
-                [ select []
-                    [ option' [] [text "your mom"]
-                    ]
-                ]
+            ; vertexInputBlock pass
             ; div 
-                [ styles ["width", "200px"; "height", "50px"]
+                [ styles ["width", "200px"; "height", "50px"; "background", "blue"]
                 ; onCB "dragover" "" (fun e ->
                     [%raw {| e.preventDefault() |}];
                     [%raw {| e.dataTransfer.dropEffect = "link" |}];
@@ -129,8 +169,11 @@ type msg =
     [@@bs.deriving accessors]
 
 let projectPath = "./TestProject/"
+let getManifestPath () =
+    Node.Path.resolve projectPath "project-manifest.json"
+
 let loadProject () =
-    let manifestPath = Node.Path.resolve projectPath "project-manifest.json" in
+    let manifestPath = getManifestPath() in
     if Node.Fs.existsSync (manifestPath) then
         Node.Fs.readFileAsUtf8Sync (manifestPath)
             |> Json.parseOrRaise
@@ -155,7 +198,29 @@ function (path) {
 }
 |}]
 
+let writeFile: (string -> string -> unit) = [%raw {|
+function (path, content) {
+    require("fs").writeFile(path, content, _ => undefined)
+}
+|}]
+
+let whackOutModel model =
+    let path = getManifestPath () in
+    let fileContents =
+        AppDomain.Encode.project model.project
+        |> Json.stringify
+    in
+        writeFile path fileContents
+
+let getSelectedPass model =
+    match model.mainWindow with
+    | PassWindow (n, _) -> Some (List.find (fun (p: AppDomain.pass) -> p.name == n) model.project.passes)
+    | _ -> None
+
+
 let update (model: model) (msg: msg) =
+    whackOutModel model;
+
     match msg with
     | FileTreeMsg msg ->
         let fileTree = FileTree.update model.fileTree msg in
@@ -169,6 +234,18 @@ let update (model: model) (msg: msg) =
             { model with passList=passList; mainWindow=passWindow p @@ PassView.init (); project = AppDomain.Project.createPass model.project p}
         | DoNothing -> 
             { model with passList=passList };
+        ;
+    | PassViewMsg msg ->
+        match model.mainWindow with
+        | PassWindow (s, m) ->
+            let passView, intent = PassView.update m (Option.unwrap @@ getSelectedPass model) msg
+            in match intent with
+            | UpdatePassData p ->
+                {model with mainWindow=PassWindow (s, passView); project=AppDomain.Project.updatePass model.project s p}
+            | DoNothing ->
+                {model with mainWindow=PassWindow (s, passView)};
+            ;
+        | _ -> failwith "wrong state";
         ;
     | GlobalMsg msg -> 
         let globalState = Global.update model.global msg in
@@ -189,15 +266,11 @@ let sidebar fileTree passList =
 
 
 
-let getSelectedPass model =
-    match model.mainWindow with
-    | PassWindow (n, _) -> Some n
-    | _ -> None
 
 let view (model: model)=
     let fileTree, globalItems = FileTree.view model.fileTree in
     let passList, globalItems = 
-        PassList.view model.passList model.project.passes @@ getSelectedPass model
+        PassList.view model.passList model.project.passes (Option.map (fun (p: AppDomain.pass) -> p.name) @@ getSelectedPass model)
         |> (fun (a, b) -> a, List.concat [List.map (Vdom.map (fun v -> PassListMsg v)) b; List.map (Vdom.map (fun v -> FileTreeMsg v)) globalItems])
     in
     Vdom.node "transparent" [Vdom.style "display" "contents"]
@@ -207,7 +280,7 @@ let view (model: model)=
                 (match model.mainWindow with
                 | Empty -> []
                 | PassWindow (p, _model) -> 
-                    List.map (Vdom.map passViewMsg) @@ PassView.view _model @@ getSelectedPass model
+                    List.map (Vdom.map passViewMsg) @@ PassView.view _model @@ (Option.unwrap @@ getSelectedPass model)
                 )
             ];
             List.map (Vdom.map (fun v -> GlobalMsg v)) @@ Global.view model.global;

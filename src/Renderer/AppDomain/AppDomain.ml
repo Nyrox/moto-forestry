@@ -2,6 +2,7 @@ open Utils
 
 type vertexInputData = 
 | Mesh of Path.t
+| FullScreenPass
 | NoData
 [@@bs.deriving accessors]
 
@@ -28,6 +29,9 @@ module Project = struct
 
     let createPass project passName =
         {project with passes=(Pass.createEmpty passName) :: project.passes}
+
+    let updatePass (project: t) name pass =
+        {project with passes=(List.map (fun (p: pass) -> if p.name == name then pass else p) project.passes)}
 end
 type project = Project.t
 
@@ -45,6 +49,7 @@ module Decode = struct
     let vertexInput json: vertexInputData =
         (field "type" string |> andThen (
             function    | "mesh" -> Json.Decode.map (fun s -> mesh @@ Path.absolute s) @@ field "path" string
+                        | "fullscreen" -> (fun _ -> FullScreenPass)
                         | "nodata" -> (fun _ -> NoData)
                         | _ -> failwith "Unexpected vertexInput variant"
         )) json
@@ -71,7 +76,8 @@ module Encode = struct
         (
             object_ @@
                 (v |> function
-                | Mesh p -> ["type", string "mesh"; "mesh", string @@ Path.asString p]
+                | Mesh p -> ["type", string "mesh"; "path", string @@ Path.asString p]
+                | FullScreenPass -> ["type", string "fullscreen"]
                 | NoData -> ["type", string "nodata"])
         )
 
