@@ -9,13 +9,6 @@ open Utils
 
 open AppDomain
 
-let jsonTest = 
-    let _testProject = AppDomain.createProject () in
-    AppDomain.Encode.project 
-        {_testProject with passes=[{name="TestPass"; vertexInput=AppDomain.mesh @@ Path.resolve ("./teapot.obj")}]}
-        |> Json.stringify
-        |> Node.Fs.writeFileAsUtf8Sync "rad.json";;
-
 
 let customSelect (value: string) (options: (string * 'a) list): 'a Vdom.t =
     let createOption (label, msg) =
@@ -38,9 +31,29 @@ let customSelect (value: string) (options: (string * 'a) list): 'a Vdom.t =
     in
         div [class' "custom-select"; onCB "click" "" setActive]
             [ text value
+            ; img [src @@ Utils.getStaticAssetPath "icons/select_expand_arrow.svg"] []
             ; ul [class' "options"] @@ List.map createOption options
             ];
+;;
 
+
+let unsafe_getGlobalFileTree: (unit -> FileTree.node) = [%raw {|
+function() {
+    return window.__elmModel.fileTree.tree;
+}
+|}]
+
+let unsafe_getGlobalProject: (unit -> AppDomain.Project.t) = [%raw {|
+function() {
+    return window.__elmModel.project;
+}
+|}]
+
+let unsafe_getProjectBasePath: (unit -> Path.t) = [%raw {|
+function() {
+    return window.__elmModel.basePath;
+}
+|}]
 
 module PassView = struct
     type tab =
@@ -49,12 +62,15 @@ module PassView = struct
 
     type model = {
         tab: tab;
-        editor: MonacoEditor.model;
+        editor: MonacoEditor.model option;
+        fragmentShaderFileSearchBox: string;
     }
 
     type msg =
     | Tab of tab
     | SetVertexInputData of AppDomain.vertexInputData
+    | SetFragmentShaderFile of string
+    | SetFragmentShaderFileSearchBox of string
     | EditorMsg of MonacoEditor.msg
     [@@bs.deriving accessors]
 
@@ -63,25 +79,37 @@ module PassView = struct
     | DoNothing
 
     let init () = 
-        { tab=Input; editor=MonacoEditor.init "<loading...>" }
+        { tab=Input; editor=Some (MonacoEditor.init "<loading...>"); fragmentShaderFileSearchBox="" }
     
-    let update model pass msg =
+    let update model (pass: Pass.t) msg =
         match msg with
-        | Tab t -> {model with tab=t}, DoNothing
+        | Tab t -> 
+            match t with
+            | FragmentShader -> 
+                let editor = Option.map MonacoEditor.loadFile pass.fragShader in
+                {model with tab=t; editor=editor}, DoNothing
+            | _ -> {model with tab=t}, DoNothing;
+        ;
+        | SetFragmentShaderFileSearchBox v -> 
+            {model with fragmentShaderFileSearchBox=v}, DoNothing
         | SetVertexInputData v ->
             model, UpdatePassData {pass with vertexInput=v}
+        | SetFragmentShaderFile v ->
+            let editor = MonacoEditor.loadFile @@ Utils.Path.absolute v in
+            {model with editor=Some editor}, UpdatePassData {pass with fragShader=Some (Path.absolute v)}
         | EditorMsg msg ->
-            {model with editor=MonacoEditor.update model.editor msg}, DoNothing
+            {model with editor=Option.map (fun m -> MonacoEditor.update m msg) model.editor}, DoNothing
         
     let vertexInputBlock (pass: pass) =
-        let label: string = 
+        let value: string = 
             match pass.vertexInput with
             | Mesh _ -> "Mesh"
             | FullScreenPass -> "Fullscreen"
             | _ -> ""
         in
         fieldset [] @@
-            [ customSelect label
+            [ label [] [text "Vertex Input Type"] 
+            ; customSelect value
                 [ "Mesh", setVertexInputData @@ AppDomain.mesh @@ Utils.Path.absolute ""
                 ; "Fullscreen", setVertexInputData AppDomain.FullScreenPass                        
                 ]
@@ -118,6 +146,59 @@ module PassView = struct
             [ h2 [] [text "Samplers"]
             ]
 
+    let customSearchBox current setValue getOptions abort =
+        let createOption (label, msg) =
+            li ~key:label [onCB "click" "" (fun e -> 
+                let collapse = [%raw {|
+                    (e) => e.target.parentElement.parentElement.classList.remove("expand")
+                |}] in
+                Js.log msg;
+                collapse e;
+                Some msg)] [text label]
+        in
+        let setActive e =
+            let impl = [%raw {|
+                (e) => e.target.parentElement.classList.add("expand")
+            |}] in
+            impl e;
+            None
+        in
+        div [class' "custom-searchbox"]
+            [input'
+                [ type' "text"
+                ; classList ["pass-item", true; "create-dialog", true]
+                ; id "custom-search-input"
+                ; onCB "focus" "" setActive
+                ; value current
+                ; onInput setValue
+                ] []
+            ; div [class' "options-list"] @@ List.map createOption (getOptions current)
+            ]
+        
+    let viewFragmentShaderBlock model (pass: pass) =
+        div [class' "block"]
+            [ h2 [][text "Fragment Shader"]
+            ; fieldset [] @@
+                [ label [] [text "Fragment Shader File"] 
+                ; customSearchBox
+                    model.fragmentShaderFileSearchBox 
+                    (fun v -> SetFragmentShaderFileSearchBox v)
+                    (fun v -> 
+                        let files = FileTree.findFiles (fun f ->
+                            Option.isSome @@ List.find_opt
+                                (fun v -> v == Path.extname f)
+                                [".sl"; ".glsl"]
+                            && Js_string.includes v @@ Path.asString f
+                        ) @@ unsafe_getGlobalFileTree ()
+                        in files |>
+                            List.map (fun v -> 
+                                Path.relative (unsafe_getProjectBasePath ()) v,
+                                SetFragmentShaderFile (Path.asString v))
+                    )
+                    (SetFragmentShaderFileSearchBox (Option.orDefault "" @@ Option.map Path.asString pass.fragShader))
+                ]
+            ]
+
     let view model pass =
         let panelTabButton tab =
             let isActive = tab == model.tab in
@@ -132,18 +213,23 @@ module PassView = struct
             [ panelTabButton Input
             ; panelTabButton FragmentShader ]
         in
-        let panelContent = div [class' "panel"] @@ match model.tab with
+        let panelContent = match model.tab with
             | Input ->
-                [ viewVertexDataBlock model pass
-                ; viewUniformDataBlock model pass
-                ; viewSamplerDataBlock model pass
-                ]
+                div [class' "panel"]
+                    [ viewVertexDataBlock model pass
+                    ; viewUniformDataBlock model pass
+                    ; viewSamplerDataBlock model pass
+                    ]
             | FragmentShader ->
-                [ Vdom.map (fun v -> EditorMsg v) @@ MonacoEditor.view model.editor ]
+                div [class' "panel"]
+                    [ viewFragmentShaderBlock model pass
+                    ; match model.editor with
+                    | Some m -> Vdom.map (fun v -> EditorMsg v) @@ MonacoEditor.view m
+                    | None -> noNode
+                    ]
         in
             [panelNavigation; panelContent]
 end
-
 
 
 
@@ -158,7 +244,10 @@ type model = {
     project: AppDomain.Project.t;
     passList: PassList.model;
     mainWindow: mainWindowState;
+    basePath: Path.t;
 }
+
+
 
 type msg = 
     | FileTreeMsg of FileTree.msg
@@ -168,12 +257,12 @@ type msg =
     | NoOp
     [@@bs.deriving accessors]
 
-let projectPath = "./TestProject/"
-let getManifestPath () =
+
+let getManifestPath projectPath =
     Node.Path.resolve projectPath "project-manifest.json"
 
-let loadProject () =
-    let manifestPath = getManifestPath() in
+let loadProject projectPath =
+    let manifestPath = getManifestPath projectPath in
     if Node.Fs.existsSync (manifestPath) then
         Node.Fs.readFileAsUtf8Sync (manifestPath)
             |> Json.parseOrRaise
@@ -183,29 +272,21 @@ let loadProject () =
 
 
 let init () =
+    let projectPath = "./TestProject" in
     let (fileTree, cmd) = FileTree.init @@ Path.resolve projectPath in
     ({
         fileTree=fileTree;
         global=Global.init ();
         passList=PassList.init ();
         mainWindow=Empty;
-        project=loadProject ();
+        project=loadProject projectPath;
+        basePath=Path.resolve projectPath;
     }, Tea.Cmd.map (fun v -> FileTreeMsg v) cmd)
 
-let loadFile: (string -> string) = [%raw {|
-function (path) {
-    return require("fs").readFileSync(path, "utf-8")
-}
-|}]
 
-let writeFile: (string -> string -> unit) = [%raw {|
-function (path, content) {
-    require("fs").writeFile(path, content, _ => undefined)
-}
-|}]
 
 let whackOutModel model =
-    let path = getManifestPath () in
+    let path = getManifestPath @@ Path.asString model.basePath in
     let fileContents =
         AppDomain.Encode.project model.project
         |> Json.stringify

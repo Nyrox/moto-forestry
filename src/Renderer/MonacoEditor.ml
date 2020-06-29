@@ -1,4 +1,4 @@
-
+open Utils
 
 type model = {
     value: string;
@@ -9,6 +9,9 @@ type msg =
 
 let init code =
     {value=code}
+
+let loadFile path =
+    {value=Utils.loadFileSync @@ Path.asString path}
 
 let update model msg =
     match msg with

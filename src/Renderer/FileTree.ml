@@ -7,6 +7,11 @@ type node =
     | Directory of directory
 and directory = Path.t * node list * bool
 
+let rec findFiles filter node =
+    match node with
+    | File p -> if filter p then [p] else []
+    | Directory (_, files, _) ->
+        List.concat @@ List.map (findFiles filter) files
 
 
 let readdir: (string -> (string Js.Array.t) Js.Promise.t) = [%raw {|

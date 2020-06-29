@@ -14,10 +14,11 @@ module Pass = struct
     type t = {
         name: string;
         vertexInput: vertexInputData;
+        fragShader: Path.t option;
     }
 
     let createEmpty name =
-        {name; vertexInput=NoData}
+        {name; vertexInput=NoData; fragShader=None}
 end
 type pass = Pass.t
 
@@ -57,7 +58,8 @@ module Decode = struct
     let pass json: Pass.t =
         {
             name = json |> field "name" string;
-            vertexInput = json |> field "vertexInput" vertexInput
+            vertexInput = json |> field "vertexInput" vertexInput;
+            fragShader = Option.map Path.absolute (json |> optional @@ field "fragShader" string);
         }
 
     

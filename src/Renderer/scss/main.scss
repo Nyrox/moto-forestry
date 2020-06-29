@@ -145,6 +145,15 @@ monaco-editor {
     width: 100%;
 }
 
+input {
+    background: $backgroundLight;
+    border: none;
+    margin: 0;
+    border-bottom: 1px solid currentColor;
+    color: $fontColor;
+    padding: $halfPad;
+}
+
 .pass-list {
     padding: $doublePad;
     color: $fontColorDim;
@@ -158,6 +167,10 @@ monaco-editor {
         color: $fontColorDim;
 
         input { color: $fontColorBright; }
+    }
+
+    input {
+        width: 100%;
     }
 
     .header {
@@ -186,13 +199,7 @@ monaco-editor {
 
     }
     
-    input.pass-item {
-        width: 100%;
-        background: $backgroundLight;
-        border: none;
-        margin: 0;
-        border-bottom: 1px solid currentColor;
-    }
+
 
     form { display: contents; }
 
@@ -232,6 +239,9 @@ monaco-editor {
         margin-top: $doublePad;
     }
 
+    input {
+        background: $backgroundMain;
+    }
 
     h2 {
         font-size: 20px;
@@ -246,7 +256,10 @@ monaco-editor {
 
     .panel {
         flex-grow: 1;
-        padding: $doublePad $quadPad;
+        
+        .block {
+            padding: $doublePad $quadPad;
+        }
 
         .block > * {
             margin-top: $doublePad;    
@@ -278,6 +291,17 @@ monaco-editor {
     color: $fontColor;
 
     position: relative;
+    border: 1px solid $fontColorDimHard;
+
+    > img {
+        position: absolute;
+        top: 50%;
+        right: $singlePad;
+        transform: translateY(-50%);
+        height: 40%;
+        opacity: 80%;
+        pointer-events: none;
+    }
 }
 
 .custom-select, .custom-select li {
@@ -304,4 +328,44 @@ monaco-editor {
 .custom-select li:hover {
     background: $backgroundLight;
     cursor: pointer;
+}
+
+fieldset {
+    > label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: $singlePad;
+    }
+}
+
+.custom-searchbox {
+    display: inline-block;
+    position: relative;
+
+    &.expand .options-list{
+        display: block;
+    }
+
+    .options-list {
+        width: 100%;
+        background: $backgroundLight;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        border: 1px solid $fontColorDimHard;
+        display: none;
+
+        > * {
+           padding: $singlePad;
+           cursor: pointer;
+
+            &:hover {
+                background: $backgroundMain;
+            }
+        }
+
+        > * + * {
+            border-top: 1px solid $fontColorDimHard;
+        }
+    }
 }

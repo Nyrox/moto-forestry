@@ -11,7 +11,8 @@ customElements.define("monaco-editor", class extends HTMLElement {
     constructor() {
         super();
         Object.defineProperty(this, "_editorValue", {
-            set: function(value) { 
+            set: function(value) {
+                this._maybeInitialValue = value;
                 if (!this._editor) return;
                 this._editor.setValue(value);
             }
@@ -24,10 +25,9 @@ customElements.define("monaco-editor", class extends HTMLElement {
     connectedCallback() {
         let self = this;
 
-
         monaco.editor.setTheme("vs-dark");
 		this._editor = monaco.editor.create(this, {
-			value: "<waiting>",
+			value: this._maybeInitialValue !== undefined ? this._maybeInitialValue : "<waiting>",
             language: 'javascript',
             glyphMargin: true,
             lineNumbersMinChars: 2,
