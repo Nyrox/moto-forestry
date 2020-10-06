@@ -11,7 +11,7 @@
     "bs-let": "^0.1.16",
     "bs-platform": "^7.3.2",
     "bucklescript-tea": "^0.15.0",
-    "electron": "^9.0.2",
+    "electron": "^9.3.0",
     "electron-devtools-installer": "^3.0.0",
     "electron-webpack": "^2.8.2",
     "extra-watch-webpack-plugin": "^1.0.3",
